@@ -5,6 +5,7 @@ import com.migu.schedule.constants.ReturnCodeKeys;
 import com.migu.schedule.domain.Task;
 import com.migu.schedule.info.TaskInfo;
 
+import java.awt.print.Pageable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,11 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Schedule {
 
-    private Set<Integer> nodes = Collections.synchronizedSet(new HashSet<Integer>());
+    private Set<Integer> allNodes = Collections.synchronizedSet(new TreeSet<Integer>());
     private Map<Integer, Task> suspendTasks = new ConcurrentHashMap<Integer, Task>();
     private Map<Integer, Task> executeTasks = new ConcurrentHashMap<Integer, Task>();
 
-    private boolean checkId(int id) {
+    private boolean checkInt(int id) {
         return id <= 0;
     }
 
@@ -26,11 +27,11 @@ public class Schedule {
     }
 
     private boolean existNode(int nodeId) {
-        return nodes.contains(nodeId);
+        return allNodes.contains(nodeId);
     }
 
     public int init() {
-        nodes.clear();
+        allNodes.clear();
         suspendTasks.clear();
         executeTasks.clear();
         return ReturnCodeKeys.E001;
@@ -38,24 +39,24 @@ public class Schedule {
 
 
     public int registerNode(int nodeId) {
-        if (checkId(nodeId)) return ReturnCodeKeys.E004;
+        if (checkInt(nodeId)) return ReturnCodeKeys.E004;
         if (existNode(nodeId)) return ReturnCodeKeys.E005;
 
-        nodes.add(nodeId);
+        allNodes.add(nodeId);
         return ReturnCodeKeys.E003;
     }
 
     public int unregisterNode(int nodeId) {
-        if (checkId(nodeId)) return ReturnCodeKeys.E004;
+        if (checkInt(nodeId)) return ReturnCodeKeys.E004;
         if (!existNode(nodeId)) return ReturnCodeKeys.E007;
 
-        nodes.remove(nodeId);
+        allNodes.remove(nodeId);
         return ReturnCodeKeys.E006;
     }
 
 
     public int addTask(int taskId, int consumption) {
-        if (checkId(taskId)) return ReturnCodeKeys.E009;
+        if (checkInt(taskId)) return ReturnCodeKeys.E009;
         if (existTask(taskId)) return ReturnCodeKeys.E010;
 
         suspendTasks.put(taskId, new Task(taskId, consumption, -1));
@@ -64,7 +65,7 @@ public class Schedule {
 
 
     public int deleteTask(int taskId) {
-        if (checkId(taskId)) return ReturnCodeKeys.E009;
+        if (checkInt(taskId)) return ReturnCodeKeys.E009;
         if (!existTask(taskId)) return ReturnCodeKeys.E012;
 
         if (suspendTasks.containsKey(taskId)) suspendTasks.remove(taskId);
@@ -75,8 +76,61 @@ public class Schedule {
 
 
     public int scheduleTask(int threshold) {
-        // TODO 方法未实现
+        if (checkInt(threshold)) return ReturnCodeKeys.E002;
+
+        List<Task> tasks = new ArrayList<Task>(suspendTasks.size() + executeTasks.size());
+
+        if (suspendTasks.size() > 0) {
+            tasks.addAll(suspendTasks.values());
+        } else if (executeTasks.size() <= 0) {
+            return ReturnCodeKeys.E013;
+        }
+
+        tasks.addAll(executeTasks.values());
+        calcPlan(tasks);
+
         return ReturnCodeKeys.E000;
+    }
+
+    private void calcPlan(List<Task> tasks) {
+        Deque<Integer> nodes = new LinkedList<Integer>(this.allNodes);
+        Collections.sort(tasks, new Comparator<Task>() {
+            public int compare(Task o1, Task o2) {
+                return o1.getConsumption() - o2.getConsumption();
+            }
+        });
+
+        Map<Integer, List<Integer>> plan = new HashMap<Integer, List<Integer>>();
+        int nodeSize = nodes.size();
+        int taskSize = tasks.size();
+        boolean asc = true;
+        int tempNodeId;
+        List<Integer> tempConsumptions;
+
+        for (int i = 0; i < taskSize; i++) {
+            if (asc) {
+                tempNodeId = nodes.pollFirst();
+            } else {
+                tempNodeId = nodes.pollLast();
+            }
+
+            if (!plan.containsKey(tempNodeId)) {
+                tempConsumptions = new ArrayList<Integer>();
+                plan.put(tempNodeId, tempConsumptions);
+            } else {
+                tempConsumptions = plan.get(tempNodeId);
+            }
+
+            tempConsumptions.add(tasks.get(i).getConsumption());
+
+            if (i % nodeSize == (nodeSize - 1)) {
+                asc = !asc;
+            }
+        }
+    }
+
+    private void execPlan() {
+
     }
 
 
