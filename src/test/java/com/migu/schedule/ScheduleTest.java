@@ -10,7 +10,7 @@ import com.migu.schedule.constants.ReturnCodeKeys;
 import com.migu.schedule.info.TaskInfo;
 
 public class ScheduleTest
-{
+    {
     /**
      * TaskSchedule实例
      */
@@ -157,13 +157,13 @@ public class ScheduleTest
         Assert.assertEquals(ReturnCodeKeys.E015, actual);
 
         int expecteds[][] = {
-                {1, 7},
-                {2, 6},
-                {3, 7},
-                {4, 1},
-                {5, 7},
-                {6, 7},
-                {7, 6}};
+            {1, 7},
+            {2, 6},
+            {3, 7},
+            {4, 1},
+            {5, 7},
+            {6, 7},
+            {7, 6}};
 
         assertPlanEqual(expecteds, tasks);
     }
@@ -191,10 +191,10 @@ public class ScheduleTest
         Assert.assertEquals(ReturnCodeKeys.E015, actual);
 
         int expecteds[][] = {
-                {1, 1},
-                {2, 1},
-                {3, 3},
-                {4, 3}};
+            {1, 1},
+            {2, 1},
+            {3, 3},
+            {4, 3}};
 
         assertPlanEqual(expecteds, tasks);
     }
