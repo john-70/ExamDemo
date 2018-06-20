@@ -11,4 +11,8 @@ public class OneTest {
     assertEquals("foo", one.foo());
   }
 
+
+  public void testBar() {
+    System.out.println("bar");
+  }
 }
