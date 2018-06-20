@@ -2,6 +2,8 @@ package com.migu.schedule;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -15,6 +17,8 @@ public class ScheduleTest
      * TaskSchedule实例
      */
     private Schedule schedule = new Schedule();
+
+    private Map<Integer, List<Integer>> x = new ConcurrentHashMap<Integer, List<Integer>>();
     
     /** 测试调度方案是否符合
      * 
