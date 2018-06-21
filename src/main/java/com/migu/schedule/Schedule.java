@@ -86,51 +86,134 @@ public class Schedule {
             return ReturnCodeKeys.E013;
         }
 
+        List<Integer> nodes = new ArrayList<>(this.allNodes);
+
         tasks.addAll(executeTasks.values());
-        calcPlan(tasks);
 
-        return ReturnCodeKeys.E000;
-    }
-
-    private void calcPlan(List<Task> tasks) {
-        Deque<Integer> nodes = new LinkedList<Integer>(this.allNodes);
         Collections.sort(tasks, new Comparator<Task>() {
             public int compare(Task o1, Task o2) {
-                return o1.getConsumption() - o2.getConsumption();
+                if (o1.getConsumption() - o2.getConsumption() == 0) {
+                    return o1.getTaskId() - o2.getTaskId();
+                } else {
+                    return o1.getConsumption() - o2.getConsumption();
+                }
             }
         });
 
+        List<List<Integer>> lstIndexConsumptions = calcPlan(tasks, nodes.size());
+
+        int min = 0;
+        int max = 0;
+        for (Integer c : lstIndexConsumptions.get(0)) {
+            min += c;
+        }
+
+        for (Integer c : lstIndexConsumptions.get(lstIndexConsumptions.size() - 1)) {
+            max += c;
+        }
+
+        if ((max - min) > threshold) {
+            return ReturnCodeKeys.E014;
+        }
+
+        execPlan(lstIndexConsumptions, tasks, nodes);
+
+        return ReturnCodeKeys.E013;
+    }
+
+    private List<List<Integer>> calcPlan(List<Task> tasks, int nodeSize) {
+
+        Deque<Task> taskDeque = new LinkedList<Task>(tasks);
+
         Map<Integer, List<Integer>> plan = new HashMap<Integer, List<Integer>>();
-        int nodeSize = nodes.size();
+        List<List<Integer>> lstTempConsumptions;
         int taskSize = tasks.size();
-        boolean asc = true;
-        int tempNodeId;
+
+        for (int i = 0; i < nodeSize; i++) {
+            plan.put(i, new ArrayList<>());
+        }
+
         List<Integer> tempConsumptions;
 
         for (int i = 0; i < taskSize; i++) {
-            if (asc) {
-                tempNodeId = nodes.pollFirst();
-            } else {
-                tempNodeId = nodes.pollLast();
-            }
+            tempConsumptions = plan.get(0);
+            tempConsumptions.add(taskDeque.pollLast().getConsumption());
 
-            if (!plan.containsKey(tempNodeId)) {
-                tempConsumptions = new ArrayList<Integer>();
-                plan.put(tempNodeId, tempConsumptions);
-            } else {
-                tempConsumptions = plan.get(tempNodeId);
-            }
+            lstTempConsumptions = new ArrayList<>(plan.values());
+            Collections.sort(lstTempConsumptions, new Comparator<List<Integer>>() {
+                @Override
+                public int compare(List<Integer> o1, List<Integer> o2) {
+                    int sum1 = 0;
+                    int sum2 = 0;
 
-            tempConsumptions.add(tasks.get(i).getConsumption());
+                    for (Integer o : o1) {
+                        sum1 += o;
+                    }
 
-            if (i % nodeSize == (nodeSize - 1)) {
-                asc = !asc;
+                    for (Integer o : o2) {
+                        sum2 += o;
+                    }
+
+                    return sum1 - sum2;
+                }
+            });
+
+            for(int j = 0; j < lstTempConsumptions.size(); j++) {
+                plan.put(j, lstTempConsumptions.get(j));
             }
         }
+
+        List<List<Integer>> lstIndexConsumptions = new ArrayList<>(plan.values());
+
+        Map<List<Integer>, Integer> mapIndexConsumptions = new HashMap<>();
+        int sumConsumption;
+        for (List<Integer> consumptions : lstIndexConsumptions) {
+            sumConsumption = 0;
+            for (Integer consumption : consumptions) {
+                sumConsumption += consumption;
+            }
+
+            mapIndexConsumptions.put(consumptions, sumConsumption);
+        }
+
+
+        Collections.sort(lstIndexConsumptions, new Comparator<List<Integer>>() {
+            @Override
+            public int compare(List<Integer> o1, List<Integer> o2) {
+                int sum1 = mapIndexConsumptions.get(o1);
+                int sum2 = mapIndexConsumptions.get(o2);
+
+                if (sum1 == sum2) {
+                    return o1.size() - o2.size();
+                } else {
+                    return sum1 - sum2;
+                }
+            }
+        });
+
+        return lstIndexConsumptions;
     }
 
-    private void execPlan() {
-
+    private void execPlan(List<List<Integer>> lstIndexConsumptions, List<Task> tasks, List<Integer> nodes) {
+        List<Integer> consumptions;
+        int nodeId;
+        int consumption;
+        Task task;
+        for (int i = 0; i < lstIndexConsumptions.size(); i++) {
+            consumptions = lstIndexConsumptions.get(i);
+            nodeId = nodes.get(i);
+            for (int j = 0; j < consumptions.size(); j++) {
+                consumption = consumptions.get(j);
+                for (int k = 0; k < tasks.size(); k++) {
+                    task = tasks.get(k);
+                    if (task.getConsumption() == consumption) {
+                        task.setNodeId(nodeId);
+                        tasks.remove(task);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
 
